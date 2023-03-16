@@ -21,6 +21,10 @@ return [
         'scheme' => 'https',
     ],
 
+    'nyt' => [
+        'api_key' => env('NYT_API_KEY'),
+    ],
+
     'postmark' => [
         'token' => env('POSTMARK_TOKEN'),
     ],

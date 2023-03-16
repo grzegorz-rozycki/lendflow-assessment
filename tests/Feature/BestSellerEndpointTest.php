@@ -4,12 +4,21 @@ declare(strict_types=1);
 
 namespace Tests\Feature;
 
+use App\Http\Controllers\BestSellerEndpointController;
 use Illuminate\Foundation\Testing\WithFaker;
+use Illuminate\Http\Client\Request;
+use Illuminate\Support\Facades\Http;
 use Tests\TestCase;
 
 final class BestSellerEndpointTest extends TestCase
 {
     use WithFaker;
+
+    protected function setUp(): void
+    {
+        parent::setUp();
+        Http::fake();
+    }
 
     public function testEndpointReturnsOk(): void
     {
@@ -116,5 +125,26 @@ final class BestSellerEndpointTest extends TestCase
         $this
             ->getJson('/api/1/nyt/best-sellers?offset=9')
             ->assertJsonValidationErrorFor('offset');
+    }
+
+    public function testEndpointPassesQueryParameters(): void
+    {
+        $author = $this->faker->name;
+        $title = $this->faker->sentence;
+        $isbn10 = $this->faker->isbn10();
+        $isbn13 = $this->faker->isbn13();
+        $offset = random_int(1, 100) * 20;
+        $queryData = compact('author', 'title', 'offset');
+        $queryData['isbn'] = [$isbn10, $isbn13];
+        $this
+            ->getJson('/api/1/nyt/best-sellers?' . http_build_query($queryData))
+            ->assertOk();
+
+        $forwardedQueryData = $queryData;
+        $forwardedQueryData['isbn'] = "$isbn10;$isbn13";
+        $forwardedQueryData['api-key'] = 'fake-token';
+        $expectedUrl = BestSellerEndpointController::ENDPOINT_URL . '?' . http_build_query($forwardedQueryData);
+
+        Http::assertSent(static fn(Request $request) => $request->url() === $expectedUrl);
     }
 }
